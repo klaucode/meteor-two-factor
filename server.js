@@ -60,6 +60,14 @@ Meteor.methods({
         ? twoFactor.generateCode()
         : generateCode();
 
+    if(!user.twoFactorEnabled) {
+      Accounts._attemptLogin(this, 'login', '', {
+        type: '2FALogin',
+        userId: user._id,
+      });
+      return;
+    }
+
     if (typeof twoFactor.sendCode === 'function') {
       twoFactor.sendCode(user, code, method);
     }
