@@ -23,7 +23,9 @@ const callbackHandler = (cb, handlerCb) => {
       return typeof cb === 'function' && cb(error);
     }
 
-    handlerCb();
+    if (typeof handlerCb === 'function') {
+      handlerCb();
+    }
 
     return typeof cb === 'function' && cb();
   };
@@ -31,18 +33,19 @@ const callbackHandler = (cb, handlerCb) => {
 
 const getAuthCode = (user, password, method, cb) => {
   const selector = getSelector(user);
+  const hashedPassword = Accounts._hashPassword(password);
 
   const callback = callbackHandler(cb, () => {
     state.set('verifying', true);
     state.set('user', user);
-    state.set('password', password);
+    state.set('password', hashedPassword);
     state.set('method', method);
   });
 
   Meteor.call(
     'twoFactor.getAuthenticationCode',
     selector,
-    password,
+    hashedPassword,
     method,
     callback
   );
@@ -85,8 +88,24 @@ const isVerifying = () => state.get('verifying');
 
 const getVerifyingMethod = () => state.get('method');
 
+const abort = cb => {
+  const selector = getSelector(state.get('user'));
+  const password = state.get('password');
+
+  const callback = callbackHandler(cb, () => {
+    state.set({
+      verifying: false,
+      user: '',
+      password: '',
+    });
+  });
+
+  Meteor.call('twoFactor.abort', selector, password, callback);
+};
+
 twoFactor.getAuthCode = getAuthCode;
 twoFactor.getNewAuthCode = getNewAuthCode;
 twoFactor.verifyAndLogin = verifyAndLogin;
 twoFactor.isVerifying = isVerifying;
 twoFactor.getVerifyingMethod = getVerifyingMethod;
+twoFactor.abort = abort;
