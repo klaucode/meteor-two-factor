@@ -1,8 +1,8 @@
 Package.describe({
-  name: 'dburles:two-factor',
+  name: 'nodsec:two-factor',
   version: '1.1.0',
-  summary: 'Two-factor authentication for accounts-password',
-  git: 'https://github.com/dburles/meteor-two-factor.git',
+  summary: 'Two-factor authentication for accounts-password forked from (dburles/meteor-two-factor) and enhanced with possibility to test verification method',
+  git: 'https://github.com/nodsec/meteor-two-factor.git',
   documentation: 'README.md'
 });
 

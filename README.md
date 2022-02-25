@@ -1,6 +1,8 @@
 # Meteor Two Factor
 
-Simple two factor authentication for accounts-password.
+Simple two factor authentication for accounts-password
+forked from (https://github.com/dburles/meteor-two-factor)
+and enhanced with possibility to test verification method
 
 ## Table of Contents
 
