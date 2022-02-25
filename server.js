@@ -61,7 +61,7 @@ Meteor.methods({
         : generateCode();
 
     if (typeof twoFactor.sendCode === 'function') {
-      twoFactor.sendCode(user, code);
+      twoFactor.sendCode(user, code, method);
     }
 
     Meteor.users.update(user._id, {
