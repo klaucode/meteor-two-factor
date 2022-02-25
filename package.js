@@ -1,6 +1,6 @@
 Package.describe({
   name: 'nodsec:two-factor',
-  version: '1.1.1',
+  version: '1.1.2',
   summary: 'Two-factor authentication for accounts-password forked from enhanced with verification method',
   git: 'https://github.com/nodsec/meteor-two-factor.git',
   documentation: 'README.md'
