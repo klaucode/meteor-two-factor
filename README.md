@@ -16,7 +16,6 @@ Simple two factor authentication for accounts-password.
     - [getNewAuthCode](https://github.com/dburles/meteor-two-factor#getnewauthcode)
     - [verifyAndLogin](https://github.com/dburles/meteor-two-factor#verifyandlogin)
     - [isVerifying](https://github.com/dburles/meteor-two-factor#isverifying)
-    - [abort](https://github.com/dburles/meteor-two-factor#abort)
   - [Server](https://github.com/dburles/meteor-two-factor#api-server)
     - [sendCode](https://github.com/dburles/meteor-two-factor#sendcode)
     - [options](https://github.com/dburles/meteor-two-factor#options)
@@ -112,8 +111,7 @@ twoFactor.sendCode = (user, code) => {
 // Optional
 // Conditionally allow regular or two-factor sign in
 twoFactor.validateLoginAttempt = options => {
-  // If two factor auth isn't enabled for this user, allow regular sign in.
-  return !options.user.twoFactorEnabled;
+  return !! options.user.twoFactorEnabled;
 };
 ```
 
@@ -124,44 +122,13 @@ twoFactor.generateCode = () => {
 };
 ```
 
-**Security note:**
-
-Use [DDPRateLimiter](https://docs.meteor.com/api/methods.html#ddpratelimiter) to prevent verification code cracking
-
-```js
-import { DDPRateLimiter } from 'meteor/ddp-rate-limiter';
-
-const numberOfAttempts = 5;
-const timeInterval = 60;
-
-DDPRateLimiter.addRule(
-  {
-    type: 'method',
-    userId: null,
-    clientAddress: null,
-    name(name) {
-      const methods = [
-        'twoFactor.verifyCodeAndLogin',
-        'twoFactor.getAuthenticationCode'
-      ];
-      return methods.includes(name);
-    },
-    connectionId() {
-      return true;
-    }
-  },
-  numberOfAttempts,
-  timeInterval * 1000
-);
-```
-
 ## API
 
 The following functions are attached to the `twoFactor` namespace. This may change somewhat for Meteor 1.3.
 
 ## API (Client)
 
-### getAuthCode
+#### getAuthCode
 
 ```
 getAuthCode(user, password, [callback])
@@ -175,7 +142,7 @@ Generates an authentication code. Once generated, (by default) a `twoFactorCode`
 
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-### getNewAuthCode
+#### getNewAuthCode
 
 ```
 getNewAuthCode([callback])
@@ -185,7 +152,7 @@ Generates a new authentication code. Only functional while verifying.
 
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-### verifyAndLogin
+#### verifyAndLogin
 
 ```
 verifyAndLogin(code, [callback])
@@ -197,7 +164,7 @@ Verifies authentication code and logs in the user.
 
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-### isVerifying
+#### isVerifying
 
 ```
 isVerifying()
@@ -205,19 +172,9 @@ isVerifying()
 
 Reactive function that indicates the current state between having generated an authentication code and awaiting verification.
 
-### abort
-
-```
-abort([callback])
-```
-
-Call this function while verifying if you wish to allow the user to sign in again.
-
-**callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
-
 ## API (Server)
 
-### sendCode
+#### sendCode
 
 ```
 sendCode(user, code)
@@ -229,7 +186,7 @@ This function is called after `getAuthCode` is successful.
 
 **code** The generated authentication code.
 
-### options
+#### options
 
 ```
 twoFactor.options.fieldName = 'customFieldName';
@@ -237,7 +194,7 @@ twoFactor.options.fieldName = 'customFieldName';
 
 Specify the name of the field on the user document to write the authentication code. Defaults to `twoFactorCode`.
 
-### validateLoginAttempt (Optional)
+#### validateLoginAttempt (Optional)
 
 ```
 validateLoginAttempt(options)
@@ -246,7 +203,7 @@ validateLoginAttempt(options)
 If defined, this function is called within an `Accounts.validateLoginAttempt` callback.
 Use this to allow regular login under certain conditions.
 
-### generateCode (Optional)
+#### generateCode (Optional)
 
 If defined, this function is called to generate the random code instead of the default.
 
