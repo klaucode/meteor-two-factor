@@ -60,8 +60,13 @@ Meteor.methods({
             throw invalidLogin();
         }
 
+        const settings = Meteor.settings?.TWOFACTOR?.public || {
+            enabled: false,
+            force: false
+        }
+
         // If !user.twoFactorEnabled, login with password (skip 2FA)
-        if (!user.twoFactorEnabled) {
+        if (!settings.enabled || (!settings.force && !user.twoFactorEnabled)) {
             return Accounts._attemptLogin(this, 'login', '', {
                 type: '2FALogin',
                 userId: user._id,
