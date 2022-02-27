@@ -1,34 +1,13 @@
 # Meteor Two Factor
 
-Simple two factor authentication for accounts-password
-forked from (https://github.com/dburles/meteor-two-factor)
+Simple two factor authentication for accounts-password forked from (https://github.com/dburles/meteor-two-factor)
 and enhanced with possibility to test verification method
 
-## Table of Contents
-
-- [Installation](https://github.com/dburles/meteor-two-factor#installation)
-- [Prerequisites](https://github.com/dburles/meteor-two-factor#prerequisites)
-- [Example Application](https://github.com/dburles/meteor-two-factor#example-application)
-- [Usage](https://github.com/dburles/meteor-two-factor#example-application)
-  - [Client](https://github.com/dburles/meteor-two-factor#usage-client)
-  - [Server](https://github.com/dburles/meteor-two-factor#usage-server)
-- [API](https://github.com/dburles/meteor-two-factor#api)
-  - [Client](https://github.com/dburles/meteor-two-factor#api-client)
-    - [getAuthCode](https://github.com/dburles/meteor-two-factor#getauthcode)
-    - [getNewAuthCode](https://github.com/dburles/meteor-two-factor#getnewauthcode)
-    - [verifyAndLogin](https://github.com/dburles/meteor-two-factor#verifyandlogin)
-    - [isVerifying](https://github.com/dburles/meteor-two-factor#isverifying)
-  - [Server](https://github.com/dburles/meteor-two-factor#api-server)
-    - [sendCode](https://github.com/dburles/meteor-two-factor#sendcode)
-    - [options](https://github.com/dburles/meteor-two-factor#options)
-    - [validateLoginAttempt](https://github.com/dburles/meteor-two-factor#validateloginattempt-optional)
-    - [generateCode](https://github.com/dburles/meteor-two-factor#generatecode-optional)
-- [License](https://github.com/dburles/meteor-two-factor#license)
 
 ## Installation
 
 ```sh
-$ meteor add dburles:two-factor
+$ meteor add nodsec:two-factor
 ```
 
 ## Prerequisites
@@ -48,32 +27,50 @@ Client and server usage examples.
 Typically you would call this method via your application login form event handler:
 
 ```js
-twoFactor.getAuthCode(user, password, error => {
-  if (error) {
-    // Handle the error
-  }
-  // Success!
+twoFactor.loginWithPassword(user, password, method, error => {
+    if (error) {
+        // Handle the error
+    }
+    // Success!
 });
 ```
 
-After calling `getAuthCode` if you wish, you can request a new authentication code:
+```json
+{
+  "TWOFACTOR": {
+    "public": {
+      "enabled": true,
+      "force": true
+    }
+  }
+}
+
+```
+
+### Settings short explanation
+
+- `settings.enabled` if set to false, 2FA is disabled and method `twoFactor.loginWithPassword` will log in user without 2FA.
+
+- `settings.force` will always require 2FA verification also, if user have `user.twoFactorEnabled` set to false,
+
+After calling `loginWithPassword` if you wish, you can request a new authentication code:
 
 ```js
 twoFactor.getNewAuthCode(error => {
-  if (error) {
-    // Handle the error
-  }
-  // Success!
+    if (error) {
+        // Handle the error
+    }
+    // Success!
 });
 ```
 
 The following method is reactive and represents the state of authentication. Use it to display the interface to enter the authentication code:
 
 ```js
-Tracker.autorun(function() {
-  if (twoFactor.isVerifying()) {
-    console.log('Ready to enter authentication code!');
-  }
+Tracker.autorun(function () {
+    if (twoFactor.isVerifying()) {
+        console.log('Ready to enter authentication code!');
+    }
 });
 ```
 
@@ -81,10 +78,10 @@ Capture the authentication code and pass it to the following method to validate 
 
 ```js
 twoFactor.verifyAndLogin(code, error => {
-  if (error) {
-    // Handle the error
-  }
-  // Success!
+    if (error) {
+        // Handle the error
+    }
+    // Success!
 });
 ```
 
@@ -93,17 +90,40 @@ twoFactor.verifyAndLogin(code, error => {
 Assign a function to `twoFactor.sendCode` that sends out the code. The example below sends the user an email:
 
 ```js
-twoFactor.sendCode = (user, code) => {
-  // Don't hold up the client
-  Meteor.defer(() => {
-    // Send code via email
-    Email.send({
-      to: user.email(), // Method attached using dburles:collection-helpers
-      from: 'noreply@example.com',
-      subject: 'Your authentication code',
-      text: `${code} is your authentication code.`
+twoFactor.loginWithPassword = (options) => {
+    const user = options.user;
+    const method = options.method;
+
+    // Don't hold up the client
+    Meteor.defer(() => {
+        if (options.method === 'email') {
+            // Send code via email
+            Email.send({
+                to: user.email(), // Method attached using dburles:collection-helpers
+                from: 'noreply@example.com',
+                subject: 'Your authentication code',
+                text: `${code} is your authentication code.`
+            });
+        } else if (options.method === 'sms') {
+            // Send code via SMS
+            // ...
+        }
     });
-  });
+};
+```
+
+```js
+twoFactor.sendCode = (user, code) => {
+    // Don't hold up the client
+    Meteor.defer(() => {
+        // Send code via email
+        Email.send({
+            to: user.email(), // Method attached using dburles:collection-helpers
+            from: 'noreply@example.com',
+            subject: 'Your authentication code',
+            text: `${code} is your authentication code.`
+        });
+    });
 };
 ```
 
@@ -113,14 +133,14 @@ twoFactor.sendCode = (user, code) => {
 // Optional
 // Conditionally allow regular or two-factor sign in
 twoFactor.validateLoginAttempt = options => {
-  return !! options.user.twoFactorEnabled;
+    return !!options.user.twoFactorEnabled;
 };
 ```
 
 ```js
 // Optional
 twoFactor.generateCode = () => {
-  // return a random string
+    // return a random string
 };
 ```
 
@@ -130,10 +150,10 @@ The following functions are attached to the `twoFactor` namespace. This may chan
 
 ## API (Client)
 
-#### getAuthCode
+### loginWithPassword
 
 ```
-getAuthCode(user, password, [callback])
+loginWithPassword(user, password, method, [callback])
 ```
 
 Generates an authentication code. Once generated, (by default) a `twoFactorCode` field is added to the current user document. This function mirrors [Meteor.loginWithPassword](http://docs.meteor.com/#/full/meteor_loginwithpassword).
@@ -142,21 +162,36 @@ Generates an authentication code. Once generated, (by default) a `twoFactorCode`
 
 **password** The user's password.
 
+**method** Method (email/sms/...) of to send verification code.
+
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-#### getNewAuthCode
 
+### getAuthCode
+
+```js
+getNewAuthCode(method, [callback])
 ```
+Generates and send a new authentication code. Only functional while verifying.
+
+**method** Method (email/sms/...) of to send verification code.
+
+**callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
+
+
+### getNewAuthCode
+
+```js
 getNewAuthCode([callback])
 ```
 
-Generates a new authentication code. Only functional while verifying.
+Generates and send a new authentication code. Only functional while verifying.
 
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-#### verifyAndLogin
+### verifyAndLogin
 
-```
+```js
 verifyAndLogin(code, [callback])
 ```
 
@@ -166,9 +201,9 @@ Verifies authentication code and logs in the user.
 
 **callback** Optional callback. Called with no arguments on success, or with a single Error argument on failure.
 
-#### isVerifying
+### isVerifying
 
-```
+```js
 isVerifying()
 ```
 
@@ -176,10 +211,10 @@ Reactive function that indicates the current state between having generated an a
 
 ## API (Server)
 
-#### sendCode
+### sendCode
 
 ```
-sendCode(user, code)
+sendCode(user, code, method)
 ```
 
 This function is called after `getAuthCode` is successful.
@@ -188,7 +223,9 @@ This function is called after `getAuthCode` is successful.
 
 **code** The generated authentication code.
 
-#### options
+**method** The method of the send verification code.
+
+### options
 
 ```
 twoFactor.options.fieldName = 'customFieldName';
@@ -196,19 +233,18 @@ twoFactor.options.fieldName = 'customFieldName';
 
 Specify the name of the field on the user document to write the authentication code. Defaults to `twoFactorCode`.
 
-#### validateLoginAttempt (Optional)
+### validateLoginAttempt (Optional)
 
 ```
 validateLoginAttempt(options)
 ```
 
-If defined, this function is called within an `Accounts.validateLoginAttempt` callback.
-Use this to allow regular login under certain conditions.
+If defined, this function is called within an `Accounts.validateLoginAttempt` callback. Use this to allow regular login under certain conditions.
 
-#### generateCode (Optional)
+### generateCode (Optional)
 
 If defined, this function is called to generate the random code instead of the default.
 
-### License
+# License
 
 MIT
