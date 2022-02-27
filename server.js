@@ -111,29 +111,23 @@ Meteor.methods({
             force: false
         };
 
-        console.log('=====================', settings, user?.twoFactorEnabled)
+        // If settings.enabled and settings.force or user.twoFactorEnabled, send 2FA code
+        if (settings.enabled && (settings.force || user.twoFactorEnabled)) {
+            const code =
+                typeof twoFactor.generateCode === 'function'
+                    ? twoFactor.generateCode()
+                    : generateCode();
 
-        if (!settings.enabled || (!user.twoFactorEnabled && !settings.force)) {
-            return Accounts._attemptLogin(this, 'login', '', {
-                type: '2FALogin',
-                userId: user._id,
+            if (typeof twoFactor.sendCode === 'function') {
+                twoFactor.sendCode(user, code, options.method);
+            }
+
+            Meteor.users.update(user._id, {
+                $set: {
+                    [fieldName]: code
+                }
             });
         }
-
-        const code =
-            typeof twoFactor.generateCode === 'function'
-                ? twoFactor.generateCode()
-                : generateCode();
-
-        if (typeof twoFactor.sendCode === 'function') {
-            twoFactor.sendCode(user, code, options.method);
-        }
-
-        Meteor.users.update(user._id, {
-            $set: {
-                [fieldName]: code
-            }
-        });
     },
     'twoFactor.verifyCodeAndLogin'(options) {
         if (Meteor.userId())
