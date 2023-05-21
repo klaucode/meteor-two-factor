@@ -37,6 +37,27 @@ const getFieldName = () => {
     return twoFactor.options.fieldName || 'twoFactorCode';
 };
 
+const prepareUserSelector = (options) => {
+    // Trim string and make lowercase
+    const prepareString = function (str) {
+        str = String.prototype.trim.call(str);
+        str = String.prototype.toLowerCase.call(str);
+        return str;
+    }
+
+    const selector = options.user;
+    if(selector.email)
+        selector.email = prepareString(selector.email);
+
+    if(selector.username)
+        selector.username = prepareString(selector.username);
+
+    // For sure, check type again
+    check(selector, userQueryValidator)
+
+    return selector;
+}
+
 Meteor.methods({
     'twoFactor.loginWithPassword'(options) {
         if (Meteor.userId())
@@ -48,10 +69,10 @@ Meteor.methods({
             method: String
         });
 
-        const fieldName = getFieldName();
+        const selector = prepareUserSelector(options);
 
-        const user = Accounts._findUserByQuery(options.user);
-        if (!user) {
+        const user = Accounts._findUserByQuery(selector);
+        if (!user || !user.services || !user.services.password) {
             throw invalidLogin();
         }
 
