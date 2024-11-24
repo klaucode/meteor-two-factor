@@ -7,7 +7,7 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom('2.3.1');
+  api.versionsFrom('3.0');
   api.use(['ecmascript', 'check']);
   api.use('reactive-dict', 'client');
   api.use('accounts-password', 'server');

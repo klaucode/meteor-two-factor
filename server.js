@@ -38,7 +38,7 @@ const getFieldName = () => {
 };
 
 Meteor.methods({
-    'twoFactor.loginWithPassword'(options) {
+    'twoFactor.loginWithPassword': async function(options) {
         if (Meteor.userId())
             throw new Meteor.Error('Permission denied!');
 
@@ -50,12 +50,12 @@ Meteor.methods({
 
         const fieldName = getFieldName();
 
-        const user = Accounts._findUserByQuery(options.user);
+        const user = await Accounts._findUserByQuery(options.user);
         if (!user) {
             throw invalidLogin();
         }
 
-        const checkPassword = Accounts._checkPassword(user, options.password);
+        const checkPassword = await Accounts._checkPasswordAsync(user, options.password);
         if (checkPassword.error) {
             throw invalidLogin();
         }
@@ -67,7 +67,7 @@ Meteor.methods({
 
         // If !user.twoFactorEnabled, login with password (skip 2FA)
         if (!settings.enabled || (!settings.force && !user.twoFactorEnabled)) {
-            return Accounts._attemptLogin(this, 'login', '', {
+            return await Accounts._attemptLogin(this, 'login', '', {
                 type: '2FALogin',
                 userId: user._id,
             });
@@ -76,15 +76,15 @@ Meteor.methods({
         // If method not set, return list of available methods
         if(!options.method)
             return {
-                email: !!user.profile.email,
-                phone: !!user.profile.phone
+                email: !!user.profile.email || !!user.profile.emailAddress,
+                phone: !!user.profile.phone || !!user.profile.phoneNumber
             }
 
         // If method is set, send authenticationCode immediately
         Meteor.call('twoFactor.getAuthenticationCode', options);
         return true;
     },
-    'twoFactor.getAuthenticationCode'(options) {
+    'twoFactor.getAuthenticationCode': async function(options) {
         if (Meteor.userId())
             throw new Meteor.Error('Permission denied!');
 
@@ -96,12 +96,12 @@ Meteor.methods({
 
         const fieldName = getFieldName();
 
-        const user = Accounts._findUserByQuery(options.user);
+        const user = await Accounts._findUserByQuery(options.user);
         if (!user) {
             throw invalidLogin();
         }
 
-        const checkPassword = Accounts._checkPassword(user, options.password);
+        const checkPassword = await Accounts._checkPasswordAsync(user, options.password);
         if (checkPassword.error) {
             throw invalidLogin();
         }
@@ -111,10 +111,8 @@ Meteor.methods({
             force: false
         };
 
-        console.log('=====================', settings, user?.twoFactorEnabled)
-
         if (!settings.enabled || (!user.twoFactorEnabled && !settings.force)) {
-            return Accounts._attemptLogin(this, 'login', '', {
+            return await Accounts._attemptLogin(this, 'login', '', {
                 type: '2FALogin',
                 userId: user._id,
             });
@@ -128,14 +126,13 @@ Meteor.methods({
         if (typeof twoFactor.sendCode === 'function') {
             twoFactor.sendCode(user, code, options.method);
         }
-
-        Meteor.users.update(user._id, {
+        await Meteor.users.updateAsync(user._id, {
             $set: {
                 [fieldName]: code
             }
         });
     },
-    'twoFactor.verifyCodeAndLogin'(options) {
+    'twoFactor.verifyCodeAndLogin': async function(options) {
         if (Meteor.userId())
             throw new Meteor.Error('Permission denied!');
 
@@ -147,12 +144,12 @@ Meteor.methods({
 
         const fieldName = getFieldName();
 
-        const user = Accounts._findUserByQuery(options.user);
+        const user = await Accounts._findUserByQuery(options.user);
         if (!user) {
             throw invalidLogin();
         }
 
-        const checkPassword = Accounts._checkPassword(user, options.password);
+        const checkPassword = await Accounts._checkPasswordAsync(user, options.password);
         if (checkPassword.error) {
             throw invalidLogin();
         }
@@ -161,18 +158,18 @@ Meteor.methods({
             throw new Meteor.Error(403, 'Invalid code');
         }
 
-        Meteor.users.update(user._id, {
+        await Meteor.users.updateAsync(user._id, {
             $unset: {
                 [fieldName]: ''
             }
         });
 
-        return Accounts._attemptLogin(this, 'login', '', {
+        return await Accounts._attemptLogin(this, 'login', '', {
             type: '2FALogin',
             userId: user._id,
         });
     },
-    'twoFactor.abort'(userQuery, password) {
+    'twoFactor.abort': async function(userQuery, password) {
         if (Meteor.userId())
             throw new Meteor.Error('Permission denied!');
 
@@ -181,17 +178,17 @@ Meteor.methods({
 
         const fieldName = getFieldName();
 
-        const user = Accounts._findUserByQuery(userQuery);
+        const user = await Accounts._findUserByQuery(userQuery);
         if (!user) {
             throw invalidLogin();
         }
 
-        const checkPassword = Accounts._checkPassword(user, password);
+        const checkPassword = await Accounts._checkPasswordAsync(user, password);
         if (checkPassword.error) {
             throw invalidLogin();
         }
 
-        Meteor.users.update(user._id, {
+        await Meteor.users.updateAsync(user._id, {
             $unset: {
                 [fieldName]: '',
             },
