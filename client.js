@@ -44,15 +44,21 @@ const loginWithPassword = (user, password, method, cb) => {
             state.set('verifying', true);
     });
 
-    Accounts.callLoginMethod({
-        methodName: 'twoFactor.loginWithPassword',
-        methodArguments: [{
-            user: selector,
-            password: hashedPassword,
-            method
-        }],
-        userCallback: callback
-    });
+    Meteor.call('twoFactor.loginWithPassword', {
+        user: selector,
+        password: hashedPassword,
+        method
+    }, callback);
+
+    // Accounts.callLoginMethod({
+    //     methodName: 'twoFactor.loginWithPassword',
+    //     methodArguments: [{
+    //         user: selector,
+    //         password: hashedPassword,
+    //         method
+    //     }],
+    //     userCallback: callback
+    // });
 };
 
 const getAuthCode = (method, cb) => {
