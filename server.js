@@ -40,15 +40,13 @@ const getFieldName = () => {
 Meteor.methods({
     'twoFactor.loginWithPassword': async function(options) {
         if (Meteor.userId())
-            throw new Meteor.Error('Permission denied!');
+            throw new Meteor.Error('Unable to login user, because user is already logged in!');
 
         check(options, {
             user: userQueryValidator,
             password: passwordValidator,
             method: String
         });
-
-        const fieldName = getFieldName();
 
         const user = await Accounts._findUserByQuery(options.user);
         if (!user) {
@@ -67,7 +65,7 @@ Meteor.methods({
 
         // If !user.twoFactorEnabled, login with password (skip 2FA)
         if (!settings.enabled || (!settings.force && !user.twoFactorEnabled)) {
-            return await Accounts._attemptLogin(this, 'login', '', {
+            return Accounts._attemptLogin(this, 'login', '', {
                 type: '2FALogin',
                 userId: user._id,
             });
@@ -112,7 +110,7 @@ Meteor.methods({
         };
 
         if (!settings.enabled || (!user.twoFactorEnabled && !settings.force)) {
-            return await Accounts._attemptLogin(this, 'login', '', {
+            return Accounts._attemptLogin(this, 'login', '', {
                 type: '2FALogin',
                 userId: user._id,
             });
@@ -164,7 +162,7 @@ Meteor.methods({
             }
         });
 
-        return await Accounts._attemptLogin(this, 'login', '', {
+        return Accounts._attemptLogin(this, 'login', '', {
             type: '2FALogin',
             userId: user._id,
         });

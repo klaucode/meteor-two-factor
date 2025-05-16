@@ -35,30 +35,33 @@ const loginWithPassword = (user, password, method, cb) => {
     const selector = getSelector(user);
     const hashedPassword = Accounts._hashPassword(password);
 
-    const callback = callbackHandler(cb, () => {
+    const callback = (res) => {
         state.set('user', user);
         state.set('password', hashedPassword);
         state.set('method', method);
 
-        if(!Meteor.userId())
+        if(!res.id) {
             state.set('verifying', true);
-    });
+        }
+        if(typeof cb === 'function') {
+            cb(undefined, res);
+        }
+    };
 
-    Meteor.call('twoFactor.loginWithPassword', {
-        user: selector,
-        password: hashedPassword,
-        method
+    Accounts.callLoginMethod({
+        methodName: 'twoFactor.loginWithPassword',
+        methodArguments: [{
+            user: selector,
+            password: hashedPassword,
+            method
+        }],
+        validateResult: callback,
+        userCallback: (err) => {
+            if(err && typeof cb === 'function') {
+                cb(err);
+            }
+        },
     }, callback);
-
-    // Accounts.callLoginMethod({
-    //     methodName: 'twoFactor.loginWithPassword',
-    //     methodArguments: [{
-    //         user: selector,
-    //         password: hashedPassword,
-    //         method
-    //     }],
-    //     userCallback: callback
-    // });
 };
 
 const getAuthCode = (method, cb) => {
